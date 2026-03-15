@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OttO — EV Land</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .otto-page {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 64px 32px;
+      gap: 64px;
+      align-items: start;
+    }
+
+    @media (max-width: 760px) {
+      .otto-page { grid-template-columns: 1fr; padding-top: 40px; gap: 40px; }
+    }
+
+    /* ── Left: branding + button ── */
+    .otto-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      position: sticky;
+      top: calc(var(--nav-h) + 40px);
+    }
+
+    .otto-name {
+      font-size: 3.2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      color: var(--black);
+    }
+
+    .otto-sub {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--grey-400);
+      margin-top: 8px;
+    }
+
+    /* Call button */
+    .call-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #call-btn {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: var(--black);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+
+    #call-btn:hover { transform: scale(1.05); box-shadow: 0 8px 28px rgba(0,0,0,0.18); }
+
+    #call-btn.active {
+      background: #1a3a70;
+      box-shadow: 0 0 0 10px rgba(79,142,247,0.1);
+      animation: pulse-blue 2.4s ease-in-out infinite;
+    }
+
+    #call-btn.speaking {
+      background: #0d4a2a;
+      box-shadow: 0 0 0 10px rgba(58,176,122,0.12);
+      animation: pulse-green 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse-blue {
+      0%,100% { box-shadow: 0 0 0 8px rgba(79,142,247,0.08); }
+      50%      { box-shadow: 0 0 0 18px rgba(79,142,247,0.16); }
+    }
+    @keyframes pulse-green {
+      0%,100% { box-shadow: 0 0 0 8px rgba(58,176,122,0.08); }
+      50%      { box-shadow: 0 0 0 18px rgba(58,176,122,0.18); }
+    }
+
+    #status-label {
+      font-size: 0.82rem;
+      color: var(--grey-600);
+      transition: color 0.2s;
+    }
+    #status-label.live  { color: #3a6fd8; }
+    #status-label.otto  { color: #1a8a50; }
+    #status-label.error { color: #c0392b; }
+
+    #btn-hint {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--grey-400);
+    }
+
+    /* ── Right: transcript ── */
+    .transcript-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .transcript-header {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--grey-400);
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--grey-200);
+      margin-bottom: 28px;
+    }
+
+    #transcript {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      min-height: 400px;
+    }
+
+    .empty-state {
+      padding: 40px 0;
+      color: var(--grey-400);
+      font-size: 0.88rem;
+    }
+
+    .turn {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      animation: fadeUp 0.2s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .turn-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--grey-400);
+    }
+
+    .turn.user .turn-label { color: #3a6fd8; }
+    .turn.otto .turn-label { color: #1a8a50; }
+
+    .turn-text {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--black);
+      max-width: 560px;
+    }
+
+    /* Typing dots */
+    .typing {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding: 4px 0;
+    }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--grey-400);
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.18s; }
+    .dot:nth-child(3) { animation-delay: 0.36s; }
+
+    @keyframes bounce {
+      0%,60%,100% { transform: translateY(0); opacity: 0.35; }
+      30%          { transform: translateY(-5px); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">EV Land</a>
+    <a href="/catalogue" class="nav-back" style="font-size:0.78rem;font-weight:500;letter-spacing:0.05em;color:var(--grey-600)">
+      ← Back
+    </a>
+  </div>
+</nav>
+
+<main class="otto-page">
+
+  <!-- Left -->
+  <aside class="otto-sidebar">
+    <div>
+      <div class="otto-name">OttO</div>
+      <div class="otto-sub">Voice Advisor</div>
+    </div>
+
+    <div class="call-wrap">
+      <button id="call-btn" onclick="toggleCall()">
+        <svg id="mic-icon" width="28" height="28" viewBox="0 0 24 24" fill="none"
+             stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0"/>
+          <line x1="12" y1="20" x2="12" y2="23"/>
+          <line x1="9"  y1="23" x2="15" y2="23"/>
+        </svg>
+        <svg id="end-icon" width="26" height="26" viewBox="0 0 24 24" fill="none"
+             stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             style="display:none">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6"  y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+
+      <div id="status-label">Ready</div>
+      <div id="btn-hint">Start call</div>
+    </div>
+  </aside>
+
+  <!-- Right: transcript -->
+  <div class="transcript-col">
+    <div class="transcript-header">Conversation</div>
+    <div id="transcript">
+      <div class="empty-state" id="empty-state">Press the button to start.</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const SAMPLE_RATE = 24000;
+let ws, audioCtx, micStream, processorNode, nextPlayTime = 0, isActive = false;
+
+const callBtn   = document.getElementById("call-btn");
+const micIcon   = document.getElementById("mic-icon");
+const endIcon   = document.getElementById("end-icon");
+const statusLbl = document.getElementById("status-label");
+const btnHint   = document.getElementById("btn-hint");
+const transcript = document.getElementById("transcript");
+const emptyState = document.getElementById("empty-state");
+let typingEl = null;
+
+function setStatus(text, cls) {
+  statusLbl.textContent = text;
+  statusLbl.className   = cls || "";
+}
+
+function setCallState(active) {
+  micIcon.style.display = active ? "none"  : "block";
+  endIcon.style.display = active ? "block" : "none";
+  btnHint.textContent   = active ? "End call" : "Start call";
+}
+
+function showTyping() {
+  if (typingEl) return;
+  typingEl = document.createElement("div");
+  typingEl.className = "turn otto";
+  typingEl.innerHTML = `<div class="turn-label">OttO</div><div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  transcript.appendChild(typingEl);
+  transcript.scrollTop = transcript.scrollHeight;
+}
+
+function hideTyping() {
+  typingEl?.remove(); typingEl = null;
+}
+
+function addTurn(speaker, text) {
+  hideTyping();
+  if (emptyState) emptyState.remove();
+  const d = document.createElement("div");
+  d.className = `turn ${speaker}`;
+  d.innerHTML = `<div class="turn-label">${speaker === "user" ? "You" : "OttO"}</div><div class="turn-text">${escapeHtml(text)}</div>`;
+  transcript.appendChild(d);
+  transcript.scrollTop = transcript.scrollHeight;
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div"); d.textContent = s; return d.innerHTML;
+}
+
+async function toggleCall() {
+  isActive ? stopCall() : await startCall();
+}
+
+async function startCall() {
+  try { micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
+  catch { setStatus("Microphone denied", "error"); return; }
+
+  audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
+  nextPlayTime = audioCtx.currentTime;
+  ws = new WebSocket(`ws://${location.host}/ws/voice`);
+  ws.binaryType = "arraybuffer";
+
+  ws.onopen = () => {
+    isActive = true;
+    setStatus("Listening…", "live");
+    callBtn.classList.add("active");
+    setCallState(true);
+    startCapture();
+  };
+
+  ws.onmessage = (e) => {
+    if (e.data instanceof ArrayBuffer) {
+      playChunk(e.data);
+      callBtn.classList.replace("active", "speaking") || callBtn.classList.add("speaking");
+    } else {
+      handleEvent(JSON.parse(e.data));
+    }
+  };
+
+  ws.onclose = () => { if (isActive) stopCall(); };
+  ws.onerror = () => setStatus("Connection error", "error");
+}
+
+function stopCall() {
+  isActive = false;
+  ws?.close(); micStream?.getTracks().forEach(t => t.stop());
+  processorNode?.disconnect(); audioCtx?.close();
+  ws = micStream = processorNode = audioCtx = null;
+  callBtn.classList.remove("active", "speaking");
+  setCallState(false);
+  setStatus("Call ended", "");
+  hideTyping();
+}
+
+function startCapture() {
+  const src = audioCtx.createMediaStreamSource(micStream);
+  processorNode = audioCtx.createScriptProcessor(4096, 1, 1);
+  processorNode.onaudioprocess = (e) => {
+    if (ws?.readyState === WebSocket.OPEN) ws.send(float32ToPcm16(e.inputBuffer.getChannelData(0)).buffer);
+  };
+  src.connect(processorNode);
+  processorNode.connect(audioCtx.destination);
+}
+
+function float32ToPcm16(f) {
+  const i = new Int16Array(f.length);
+  for (let n = 0; n < f.length; n++) { const c = Math.max(-1, Math.min(1, f[n])); i[n] = c < 0 ? c * 32768 : c * 32767; }
+  return i;
+}
+
+function playChunk(buf) {
+  if (!audioCtx) return;
+  const i = new Int16Array(buf), f = new Float32Array(i.length);
+  for (let n = 0; n < i.length; n++) f[n] = i[n] / 32768;
+  const ab = audioCtx.createBuffer(1, f.length, SAMPLE_RATE);
+  ab.getChannelData(0).set(f);
+  const src = audioCtx.createBufferSource();
+  src.buffer = ab; src.connect(audioCtx.destination);
+  const at = Math.max(audioCtx.currentTime, nextPlayTime);
+  src.start(at); nextPlayTime = at + ab.duration;
+  src.onended = () => {
+    if (nextPlayTime <= audioCtx.currentTime + 0.05 && isActive) {
+      callBtn.classList.remove("speaking"); callBtn.classList.add("active");
+      setStatus("Listening…", "live");
+    }
+  };
+}
+
+function handleEvent(ev) {
+  switch (ev.type) {
+    case "conversation.item.input_audio_transcription.completed":
+      addTurn("user", ev.transcript);
+      showTyping();
+      setStatus("Thinking…", "live");
+      break;
+    case "response.audio_transcript.done":
+      addTurn("otto", ev.transcript);
+      if (isActive) { callBtn.classList.remove("speaking"); callBtn.classList.add("active"); setStatus("Listening…", "live"); }
+      break;
+    case "error":
+      setStatus(ev.error?.message || "Error", "error");
+      hideTyping();
+      break;
+  }
+}
+</script>
+</body>
+</html>

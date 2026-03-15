@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EV Land — Premium Electric Vehicles, Paris</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────── -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">EV Land</a>
+    <ul class="nav-links">
+      <li><a href="/catalogue" class="active">Catalogue</a></li>
+      <li><a href="/services">Services</a></li>
+      <li><a href="/parts">Parts</a></li>
+      <li><a href="/otto" class="nav-otto">Talk to OttO</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <p class="hero-eyebrow">Paris — Premium EV Dealership</p>
+    <h1 class="hero-title">Pure Electric.<br>Expertly Selected.</h1>
+    <p class="hero-subtitle">
+      24 models across 7 leading brands — all electric, all in stock.
+      Expert advice from OttO, our AI advisor, available 24/7.
+    </p>
+    <a href="/catalogue" class="btn btn-primary">Explore Catalogue</a>
+  </div>
+</section>
+
+<!-- ── Brand filter + Grid ──────────────────────────────── -->
+<div class="brand-bar">
+  <div class="container">
+    <div class="brand-pills" id="brand-pills">
+      <button class="pill active" data-brand="">All brands</button>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-title">Our Range</span>
+      <span class="result-count" id="result-count"></span>
+    </div>
+    <div id="vehicle-grid" class="vehicle-grid">
+      <!-- skeleton placeholders -->
+      <div class="skeleton-card">
+        <div class="skeleton-img skeleton"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-line short skeleton"></div>
+          <div class="skeleton-line medium skeleton"></div>
+          <div class="skeleton-line long skeleton"></div>
+        </div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-img skeleton"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-line short skeleton"></div>
+          <div class="skeleton-line medium skeleton"></div>
+          <div class="skeleton-line long skeleton"></div>
+        </div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-img skeleton"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-line short skeleton"></div>
+          <div class="skeleton-line medium skeleton"></div>
+          <div class="skeleton-line long skeleton"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ───────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-logo">EV Land</div>
+    <ul class="footer-links">
+      <li><a href="/catalogue">Catalogue</a></li>
+      <li><a href="/services">Services</a></li>
+      <li><a href="/parts">Parts</a></li>
+    </ul>
+    <span class="footer-copy">© 2026 EV Land. All rights reserved.</span>
+  </div>
+</footer>
+
+<script>
+// ---------------------------------------------------------------------------
+// Vehicle grid
+// ---------------------------------------------------------------------------
+let allVehicles = [];
+let activeBrand = "";
+
+function fmtPrice(n) {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+}
+
+function renderCard(v) {
+  const img = v.image
+    ? `<img src="${v.image}" alt="${v.brand} ${v.model}" loading="lazy" />`
+    : `<div class="card-placeholder">⚡</div>`;
+
+  const stock = v.in_stock
+    ? `<span class="stock-badge in-stock">In stock</span>`
+    : `<span class="stock-badge order-only">On order</span>`;
+
+  return `
+    <a class="vehicle-card" href="/vehicle?id=${v.vehicle_id}">
+      <div class="card-image">${img}</div>
+      <div class="card-body">
+        <div class="card-brand">${v.brand}</div>
+        <div class="card-model">${v.model}</div>
+        <div class="card-specs">
+          <span class="spec-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            ${v.max_range_km} km
+          </span>
+          ${v.battery_kwh ? `<span class="spec-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="6" width="18" height="12" rx="2"/><path d="M23 13v-2"/>
+            </svg>
+            ${v.battery_kwh} kWh
+          </span>` : ""}
+          ${v.seats ? `<span class="spec-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+            </svg>
+            ${v.seats} seats
+          </span>` : ""}
+        </div>
+        <div class="card-footer">
+          <div class="card-price"><span>From</span>${fmtPrice(v.from_price)}</div>
+          ${stock}
+        </div>
+      </div>
+    </a>
+  `;
+}
+
+function renderGrid(vehicles) {
+  const grid = document.getElementById("vehicle-grid");
+  const count = document.getElementById("result-count");
+
+  if (!vehicles.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:60px 0;text-align:center;color:var(--grey-400)">No vehicles found.</div>`;
+    count.textContent = "";
+    return;
+  }
+
+  grid.innerHTML = vehicles.map(renderCard).join("");
+  count.textContent = `${vehicles.length} model${vehicles.length !== 1 ? "s" : ""}`;
+}
+
+async function loadVehicles(brand) {
+  const url = brand ? `/api/vehicles?brand=${encodeURIComponent(brand)}` : "/api/vehicles";
+  try {
+    const res  = await fetch(url);
+    const data = await res.json();
+    allVehicles = data;
+    renderGrid(data);
+  } catch {
+    document.getElementById("vehicle-grid").innerHTML =
+      `<div style="grid-column:1/-1;padding:60px 0;text-align:center;color:var(--grey-400)">Could not load vehicles. Is the server running?</div>`;
+  }
+}
+
+async function loadBrands() {
+  try {
+    const res    = await fetch("/api/brands");
+    const brands = await res.json();
+    const pills  = document.getElementById("brand-pills");
+    brands.forEach(b => {
+      const btn = document.createElement("button");
+      btn.className = "pill";
+      btn.dataset.brand = b;
+      btn.textContent   = b;
+      btn.addEventListener("click", () => selectBrand(b));
+      pills.appendChild(btn);
+    });
+  } catch {}
+}
+
+function selectBrand(brand) {
+  activeBrand = brand;
+  document.querySelectorAll(".pill").forEach(p => {
+    p.classList.toggle("active", p.dataset.brand === brand);
+  });
+  loadVehicles(brand);
+}
+
+document.querySelector(".pill[data-brand='']").addEventListener("click", () => selectBrand(""));
+
+// Init
+loadBrands();
+loadVehicles("");
+</script>
+
+<script src="/static/js/otto-widget.js"></script>
+</body>
+</html>

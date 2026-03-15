@@ -1,0 +1,29 @@
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16 + pgvector
+  # pgvector/pgvector image comes with the vector extension pre-installed.
+  # We don't need to compile anything — just CREATE EXTENSION vector; in SQL.
+  # ---------------------------------------------------------------------------
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: otto_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB}
+    ports:
+      - "5434:5432"         # 5434 on host → 5432 in container (avoids conflict with local Postgres)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # persist data across restarts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI and Next.js services will be added in Phase 2 & 4
+
+volumes:
+  postgres_data:    # named volume — Docker manages the storage location

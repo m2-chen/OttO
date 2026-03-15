@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OttO — EV Land Voice Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0a0a0f;
+      color: #e8e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 40px;
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #fff;
+    }
+    .logo span { color: #4f8ef7; }
+
+    .tagline {
+      font-size: 0.85rem;
+      color: #666;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: -32px;
+    }
+
+    /* Call button */
+    #call-btn {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background: #1a1a2e;
+      border: 2px solid #2a2a4a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    #call-btn:hover { border-color: #4f8ef7; transform: scale(1.03); }
+
+    #call-btn.active {
+      background: #0f2040;
+      border-color: #4f8ef7;
+      box-shadow: 0 0 30px rgba(79, 142, 247, 0.3);
+      animation: pulse 2s infinite;
+    }
+
+    #call-btn.speaking {
+      border-color: #4fc3a1;
+      box-shadow: 0 0 30px rgba(79, 195, 161, 0.4);
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(79, 142, 247, 0.3); }
+      50%       { box-shadow: 0 0 40px rgba(79, 142, 247, 0.6); }
+    }
+
+    .mic-icon { font-size: 2rem; }
+    .btn-label { font-size: 0.7rem; letter-spacing: 0.1em; color: #888; text-transform: uppercase; }
+
+    /* Status */
+    #status {
+      font-size: 0.8rem;
+      color: #555;
+      letter-spacing: 0.05em;
+      height: 20px;
+      transition: color 0.2s;
+    }
+    #status.live   { color: #4f8ef7; }
+    #status.otto   { color: #4fc3a1; }
+    #status.error  { color: #f74f4f; }
+
+    /* Transcript */
+    #transcript {
+      width: min(600px, 90vw);
+      max-height: 320px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 4px 0;
+    }
+
+    .turn {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .turn-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #444;
+    }
+
+    .turn.user  .turn-label { color: #4f8ef7; }
+    .turn.otto  .turn-label { color: #4fc3a1; }
+
+    .turn-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #ccc;
+      background: #111118;
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+
+    .turn.user .turn-text  { background: #0d1a30; }
+    .turn.otto .turn-text  { background: #0d2820; }
+  </style>
+</head>
+<body>
+
+  <div class="logo">Ott<span>O</span></div>
+  <div class="tagline">EV Land — Voice Agent</div>
+
+  <button id="call-btn" onclick="toggleCall()">
+    <span class="mic-icon">🎙️</span>
+    <span class="btn-label" id="btn-text">Start call</span>
+  </button>
+
+  <div id="status">Ready</div>
+  <div id="transcript"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Audio constants — must match OpenAI Realtime API
+// ---------------------------------------------------------------------------
+const SAMPLE_RATE   = 24000;   // Hz — OpenAI expects 24kHz
+const CHUNK_MS      = 100;     // send audio every 100ms
+const CHUNK_SAMPLES = SAMPLE_RATE * CHUNK_MS / 1000;  // = 2400 samples
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+let ws            = null;
+let audioCtx      = null;
+let micStream     = null;
+let processorNode = null;
+let playbackQueue = [];        // Float32Arrays waiting to be played
+let nextPlayTime  = 0;
+let isActive      = false;
+
+// ---------------------------------------------------------------------------
+// UI helpers
+// ---------------------------------------------------------------------------
+const btn        = document.getElementById("call-btn");
+const btnText    = document.getElementById("btn-text");
+const statusEl   = document.getElementById("status");
+const transcriptEl = document.getElementById("transcript");
+
+function setStatus(text, cls = "") {
+  statusEl.textContent = text;
+  statusEl.className   = cls;
+}
+
+function addTurn(speaker, text) {
+  const div = document.createElement("div");
+  div.className = `turn ${speaker}`;
+  div.innerHTML = `
+    <div class="turn-label">${speaker === "user" ? "You" : "OttO"}</div>
+    <div class="turn-text">${text}</div>
+  `;
+  transcriptEl.appendChild(div);
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+
+// ---------------------------------------------------------------------------
+// Main toggle
+// ---------------------------------------------------------------------------
+async function toggleCall() {
+  if (isActive) {
+    stopCall();
+  } else {
+    await startCall();
+  }
+}
+
+async function startCall() {
+  // Mic permission
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch (e) {
+    setStatus("Microphone access denied", "error");
+    return;
+  }
+
+  // AudioContext at exactly 24kHz — avoids resampling
+  audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
+  nextPlayTime = audioCtx.currentTime;
+
+  // WebSocket
+  ws = new WebSocket(`ws://${location.host}/ws/voice`);
+  ws.binaryType = "arraybuffer";
+
+  ws.onopen = () => {
+    setStatus("Connected — OttO is listening", "live");
+    btn.classList.add("active");
+    btnText.textContent = "End call";
+    startCapture();
+  };
+
+  ws.onmessage = (event) => {
+    if (event.data instanceof ArrayBuffer) {
+      // Audio bytes from OttO — queue for playback
+      playAudioChunk(event.data);
+      btn.classList.add("speaking");
+    } else {
+      // JSON event — transcripts, errors
+      handleEvent(JSON.parse(event.data));
+    }
+  };
+
+  ws.onclose = () => {
+    if (isActive) stopCall();
+  };
+
+  ws.onerror = () => setStatus("Connection error", "error");
+
+  isActive = true;
+}
+
+function stopCall() {
+  isActive = false;
+  ws?.close();
+  micStream?.getTracks().forEach(t => t.stop());
+  processorNode?.disconnect();
+  audioCtx?.close();
+  ws = null; micStream = null; processorNode = null; audioCtx = null;
+  playbackQueue = [];
+  btn.classList.remove("active", "speaking");
+  btnText.textContent = "Start call";
+  setStatus("Call ended");
+}
+
+// ---------------------------------------------------------------------------
+// Capture: mic → PCM16 → WebSocket
+// ---------------------------------------------------------------------------
+function startCapture() {
+  const source = audioCtx.createMediaStreamSource(micStream);
+
+  // ScriptProcessorNode — simple, works everywhere
+  // bufferSize 4096 at 24kHz ≈ 170ms chunks (fine for VAD)
+  processorNode = audioCtx.createScriptProcessor(4096, 1, 1);
+
+  processorNode.onaudioprocess = (e) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const float32 = e.inputBuffer.getChannelData(0);
+    const pcm16   = float32ToPcm16(float32);
+    ws.send(pcm16.buffer);
+  };
+
+  source.connect(processorNode);
+  processorNode.connect(audioCtx.destination);  // must connect to something
+}
+
+// Float32 [-1, 1] → Int16 [-32768, 32767]
+function float32ToPcm16(float32) {
+  const int16 = new Int16Array(float32.length);
+  for (let i = 0; i < float32.length; i++) {
+    const clamped = Math.max(-1, Math.min(1, float32[i]));
+    int16[i] = clamped < 0 ? clamped * 32768 : clamped * 32767;
+  }
+  return int16;
+}
+
+// ---------------------------------------------------------------------------
+// Playback: PCM16 bytes → AudioContext
+// ---------------------------------------------------------------------------
+function playAudioChunk(arrayBuffer) {
+  if (!audioCtx) return;
+
+  const int16   = new Int16Array(arrayBuffer);
+  const float32 = new Float32Array(int16.length);
+  for (let i = 0; i < int16.length; i++) {
+    float32[i] = int16[i] / 32768;
+  }
+
+  const audioBuffer = audioCtx.createBuffer(1, float32.length, SAMPLE_RATE);
+  audioBuffer.getChannelData(0).set(float32);
+
+  const source = audioCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(audioCtx.destination);
+
+  // Schedule gaplessly
+  const startAt = Math.max(audioCtx.currentTime, nextPlayTime);
+  source.start(startAt);
+  nextPlayTime = startAt + audioBuffer.duration;
+
+  source.onended = () => {
+    // If queue is empty, OttO stopped speaking
+    if (nextPlayTime <= audioCtx.currentTime + 0.05) {
+      btn.classList.remove("speaking");
+      setStatus("Connected — OttO is listening", "live");
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Handle JSON events from the server
+// ---------------------------------------------------------------------------
+function handleEvent(event) {
+  switch (event.type) {
+    case "conversation.item.input_audio_transcription.completed":
+      // What the user said
+      addTurn("user", event.transcript);
+      setStatus("OttO is thinking...", "live");
+      break;
+
+    case "response.audio_transcript.done":
+      // What OttO said
+      addTurn("otto", event.transcript);
+      setStatus("Connected — OttO is listening", "live");
+      btn.classList.remove("speaking");
+      break;
+
+    case "error":
+      setStatus(`Error: ${event.error?.message || "unknown"}`, "error");
+      break;
+  }
+}
+</script>
+</body>
+</html>

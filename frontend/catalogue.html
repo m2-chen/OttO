@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catalogue — EV Land</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">EV Land</a>
+    <ul class="nav-links">
+      <li><a href="/catalogue" class="active">Catalogue</a></li>
+      <li><a href="/services">Services</a></li>
+      <li><a href="/parts">Parts</a></li>
+      <li><a href="/otto" class="nav-otto">Talk to OttO</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>Our Catalogue</h1>
+    <p>All models available at EV Land — 100% electric, 7 brands.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="catalogue-layout">
+
+    <!-- Filters sidebar -->
+    <aside class="filters-sidebar">
+      <div class="filter-group">
+        <div class="filter-label">Brand</div>
+        <div class="filter-options" id="brand-filter">
+          <label class="filter-option active">
+            <input type="radio" name="brand" value="" checked> All brands
+          </label>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-label">Body type</div>
+        <div class="filter-options" id="body-filter">
+          <label class="filter-option active">
+            <input type="radio" name="body" value="" checked> All types
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="body" value="SUV"> SUV
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="body" value="Sedan"> Sedan
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="body" value="Hatchback"> Hatchback
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="body" value="Van"> Van
+          </label>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-label">Max price</div>
+        <div class="filter-options">
+          <label class="filter-option">
+            <input type="radio" name="price" value="" checked> Any
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="price" value="40000"> Under 40,000 €
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="price" value="60000"> Under 60,000 €
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="price" value="80000"> Under 80,000 €
+          </label>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-label">Min range (km)</div>
+        <div class="filter-options">
+          <label class="filter-option">
+            <input type="radio" name="range" value="" checked> Any
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="range" value="400"> 400+ km
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="range" value="500"> 500+ km
+          </label>
+          <label class="filter-option">
+            <input type="radio" name="range" value="600"> 600+ km
+          </label>
+        </div>
+      </div>
+
+      <button class="btn btn-outline" onclick="resetFilters()" style="width:100%;justify-content:center">
+        Reset filters
+      </button>
+    </aside>
+
+    <!-- Grid -->
+    <div>
+      <div class="section-header">
+        <span class="section-title">All Models</span>
+        <span class="result-count" id="result-count"></span>
+      </div>
+      <div id="vehicle-grid" class="vehicle-grid">
+        <!-- skeleton -->
+        <div class="skeleton-card"><div class="skeleton-img skeleton"></div><div class="skeleton-body"><div class="skeleton-line short skeleton"></div><div class="skeleton-line medium skeleton"></div><div class="skeleton-line long skeleton"></div></div></div>
+        <div class="skeleton-card"><div class="skeleton-img skeleton"></div><div class="skeleton-body"><div class="skeleton-line short skeleton"></div><div class="skeleton-line medium skeleton"></div><div class="skeleton-line long skeleton"></div></div></div>
+        <div class="skeleton-card"><div class="skeleton-img skeleton"></div><div class="skeleton-body"><div class="skeleton-line short skeleton"></div><div class="skeleton-line medium skeleton"></div><div class="skeleton-line long skeleton"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-logo">EV Land</div>
+    <ul class="footer-links">
+      <li><a href="/catalogue">Catalogue</a></li>
+      <li><a href="/services">Services</a></li>
+      <li><a href="/parts">Parts</a></li>
+    </ul>
+    <span class="footer-copy">© 2026 EV Land. All rights reserved.</span>
+  </div>
+</footer>
+
+<script>
+let allVehicles = [];
+
+function fmtPrice(n) {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+}
+
+function renderCard(v) {
+  const img = v.image
+    ? `<img src="${v.image}" alt="${v.brand} ${v.model}" loading="lazy" />`
+    : `<div class="card-placeholder">⚡</div>`;
+  const stock = v.in_stock
+    ? `<span class="stock-badge in-stock">In stock</span>`
+    : `<span class="stock-badge order-only">On order</span>`;
+  return `
+    <a class="vehicle-card" href="/vehicle?id=${v.vehicle_id}">
+      <div class="card-image">${img}</div>
+      <div class="card-body">
+        <div class="card-brand">${v.brand}</div>
+        <div class="card-model">${v.model}</div>
+        <div class="card-specs">
+          <span class="spec-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            ${v.max_range_km} km
+          </span>
+          ${v.battery_kwh ? `<span class="spec-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="6" width="18" height="12" rx="2"/><path d="M23 13v-2"/>
+            </svg>
+            ${v.battery_kwh} kWh
+          </span>` : ""}
+        </div>
+        <div class="card-footer">
+          <div class="card-price"><span>From</span>${fmtPrice(v.from_price)}</div>
+          ${stock}
+        </div>
+      </div>
+    </a>
+  `;
+}
+
+function applyFilters() {
+  const brand = document.querySelector('input[name="brand"]:checked')?.value || "";
+  const body  = document.querySelector('input[name="body"]:checked')?.value  || "";
+  const price = parseInt(document.querySelector('input[name="price"]:checked')?.value) || 0;
+  const range = parseInt(document.querySelector('input[name="range"]:checked')?.value) || 0;
+
+  let filtered = allVehicles;
+  if (brand) filtered = filtered.filter(v => v.brand.toLowerCase() === brand.toLowerCase());
+  if (body)  filtered = filtered.filter(v => v.body_type?.toLowerCase() === body.toLowerCase());
+  if (price) filtered = filtered.filter(v => v.from_price <= price);
+  if (range) filtered = filtered.filter(v => v.max_range_km >= range);
+
+  const grid  = document.getElementById("vehicle-grid");
+  const count = document.getElementById("result-count");
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:60px 0;text-align:center;color:var(--grey-400)">No vehicles match these filters.</div>`;
+    count.textContent = "";
+    return;
+  }
+  grid.innerHTML = filtered.map(renderCard).join("");
+  count.textContent = `${filtered.length} model${filtered.length !== 1 ? "s" : ""}`;
+}
+
+function resetFilters() {
+  document.querySelectorAll('input[type="radio"][value=""]').forEach(r => r.checked = true);
+  applyFilters();
+}
+
+async function loadBrands() {
+  const res    = await fetch("/api/brands");
+  const brands = await res.json();
+  const container = document.getElementById("brand-filter");
+  brands.forEach(b => {
+    const label = document.createElement("label");
+    label.className = "filter-option";
+    label.innerHTML = `<input type="radio" name="brand" value="${b}"> ${b}`;
+    container.appendChild(label);
+  });
+  container.querySelectorAll("input").forEach(r => r.addEventListener("change", applyFilters));
+}
+
+async function init() {
+  const [_, vehiclesRes] = await Promise.all([
+    loadBrands(),
+    fetch("/api/vehicles"),
+  ]);
+  allVehicles = await vehiclesRes.json();
+
+  // Wire filter change events
+  document.querySelectorAll('.filters-sidebar input[type="radio"]').forEach(r =>
+    r.addEventListener("change", applyFilters)
+  );
+
+  applyFilters();
+}
+
+init().catch(console.error);
+</script>
+
+<script src="/static/js/otto-widget.js"></script>
+</body>
+</html>

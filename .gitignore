@@ -1,0 +1,21 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Data — raw HTML is committed, everything else is generated
+data/interim/
+data/processed/
+data/synthetic/
+
+# Node
+node_modules/
+.next/
+
+# OS
+.DS_Store

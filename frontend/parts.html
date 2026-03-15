@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parts — EV Land</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <style>
+    /* ── Category tabs ── */
+    .cat-bar {
+      padding: 28px 0 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .cat-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--grey-200);
+      min-width: max-content;
+    }
+
+    .cat-tab {
+      padding: 10px 20px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--grey-600);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .cat-tab:hover { color: var(--black); }
+
+    .cat-tab.active {
+      color: var(--black);
+      border-bottom-color: var(--black);
+    }
+
+    .cat-tab .count {
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: var(--grey-400);
+      margin-left: 6px;
+    }
+
+    .cat-tab.active .count { color: var(--grey-600); }
+
+    /* ── Search + controls bar ── */
+    .parts-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 24px 0 0;
+      flex-wrap: wrap;
+    }
+
+    .parts-search {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--grey-200);
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      background: var(--white);
+      transition: border-color 0.15s;
+    }
+
+    .parts-search:focus { border-color: var(--black); }
+
+    .stock-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--grey-600);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .stock-toggle input {
+      accent-color: var(--black);
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    .result-line {
+      font-size: 0.78rem;
+      color: var(--grey-400);
+      white-space: nowrap;
+    }
+
+    /* ── Parts grid ── */
+    .parts-section { padding: 24px 0 80px; }
+
+    .parts-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--grey-200);
+      border: 1px solid var(--grey-200);
+    }
+
+    @media (max-width: 900px) { .parts-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .parts-grid { grid-template-columns: 1fr; } }
+
+    /* ── Part card ── */
+    .part-card {
+      background: var(--white);
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: background 0.15s;
+    }
+
+    .part-card:hover { background: var(--grey-100); }
+
+    .part-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .part-cat-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--grey-400);
+    }
+
+    .ev-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: #f0f7ff;
+      color: #2a6abf;
+      padding: 2px 8px;
+      border-radius: 100px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .part-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--black);
+      line-height: 1.35;
+    }
+
+    .part-compat {
+      font-size: 0.75rem;
+      color: var(--grey-600);
+      line-height: 1.4;
+    }
+
+    .part-card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--grey-200);
+    }
+
+    .part-price {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--black);
+    }
+
+    .stock-pill {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    .stock-in    { background: #edfaf3; color: #1a7a40; }
+    .stock-order { background: var(--grey-100); color: var(--grey-600); }
+
+    /* ── Empty state ── */
+    .parts-empty {
+      grid-column: 1 / -1;
+      background: var(--white);
+      padding: 60px 24px;
+      text-align: center;
+      color: var(--grey-400);
+      font-size: 0.9rem;
+    }
+
+    /* ── Category overview cards (shown when no search + All tab) ── */
+    .cat-overview {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--grey-200);
+      border: 1px solid var(--grey-200);
+      margin: 24px 0;
+    }
+
+    @media (max-width: 900px) { .cat-overview { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .cat-overview { grid-template-columns: repeat(2, 1fr); } }
+
+    .cat-card {
+      background: var(--white);
+      padding: 24px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .cat-card:hover { background: var(--grey-100); }
+
+    .cat-card-name {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--black);
+    }
+
+    .cat-card-count {
+      font-size: 0.78rem;
+      color: var(--grey-600);
+    }
+
+    .cat-card-range {
+      font-size: 0.72rem;
+      color: var(--grey-400);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">EV Land</a>
+    <ul class="nav-links">
+      <li><a href="/catalogue">Catalogue</a></li>
+      <li><a href="/services">Services</a></li>
+      <li><a href="/parts" class="active">Parts</a></li>
+      <li><a href="/otto" class="nav-otto">Talk to OttO</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>Parts Catalogue</h1>
+    <p>Genuine parts for all models we carry — 43 references, 8 categories.</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Category tabs -->
+  <div class="cat-bar">
+    <div class="cat-tabs" id="cat-tabs">
+      <button class="cat-tab active" data-cat="">All<span class="count" id="count-all"></span></button>
+    </div>
+  </div>
+
+  <!-- Search + controls -->
+  <div class="parts-controls">
+    <input type="search" class="parts-search" id="search-input" placeholder="Search parts…" />
+    <label class="stock-toggle">
+      <input type="checkbox" id="in-stock-only" />
+      In stock only
+    </label>
+    <span class="result-line" id="result-line"></span>
+  </div>
+
+  <!-- Category overview (shown on All tab with no search) -->
+  <div id="cat-overview" class="cat-overview" style="display:none"></div>
+
+  <!-- Parts grid -->
+  <div class="parts-section">
+    <div id="parts-grid" class="parts-grid">
+      <div class="parts-empty">Loading…</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding-bottom:64px">
+    <p style="font-size:0.85rem;color:var(--grey-600);margin-bottom:16px">
+      Need help finding the right part? OttO can check compatibility and availability.
+    </p>
+    <a href="/otto" class="btn btn-outline">Ask OttO</a>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-logo">EV Land</div>
+    <ul class="footer-links">
+      <li><a href="/catalogue">Catalogue</a></li>
+      <li><a href="/services">Services</a></li>
+      <li><a href="/parts">Parts</a></li>
+    </ul>
+    <span class="footer-copy">© 2026 EV Land. All rights reserved.</span>
+  </div>
+</footer>
+
+<script>
+let allParts = [];
+let activeCategory = "";
+
+// ── Formatters ──────────────────────────────────────────
+function fmtPrice(n) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0
+  }).format(n);
+}
+
+function compatLabel(p) {
+  const brands = p.compatible_brands || [];
+  const models = p.compatible_models || [];
+  if (brands.length >= 6) return "All brands";
+  if (brands.length > 0 && models.length > 0)
+    return brands.join(", ") + " — " + models.join(", ");
+  if (brands.length > 0) return brands.join(", ");
+  return "";
+}
+
+// ── Render ──────────────────────────────────────────────
+function renderCard(p) {
+  const compat = compatLabel(p);
+  const inStock = p.stock_count > 0;
+  const stockLabel = inStock
+    ? `<span class="stock-pill stock-in">${p.stock_count} in stock</span>`
+    : `<span class="stock-pill stock-order">On order</span>`;
+  const evBadge = p.is_ev_specific
+    ? `<span class="ev-badge">EV specific</span>` : "";
+
+  return `
+    <div class="part-card">
+      <div class="part-card-top">
+        <span class="part-cat-label">${p.category}</span>
+        ${evBadge}
+      </div>
+      <div class="part-name">${p.part_name}</div>
+      ${compat ? `<div class="part-compat">${compat}</div>` : ""}
+      <div class="part-card-bottom">
+        <div class="part-price">${fmtPrice(p.price_eur)}</div>
+        ${stockLabel}
+      </div>
+    </div>
+  `;
+}
+
+function renderGrid(parts) {
+  const grid = document.getElementById("parts-grid");
+  const line = document.getElementById("result-line");
+
+  if (!parts.length) {
+    grid.innerHTML = `<div class="parts-empty">No parts match — try a different search or category.</div>`;
+    line.textContent = "";
+    return;
+  }
+
+  grid.innerHTML = parts.map(renderCard).join("");
+  line.textContent = `${parts.length} part${parts.length !== 1 ? "s" : ""}`;
+}
+
+function renderOverview(show) {
+  const el = document.getElementById("cat-overview");
+  el.style.display = show ? "grid" : "none";
+}
+
+// ── Filter (all client-side, instant) ───────────────────
+function applyFilters() {
+  const q        = document.getElementById("search-input").value.trim().toLowerCase();
+  const inStock  = document.getElementById("in-stock-only").checked;
+  const overview = document.getElementById("cat-overview");
+
+  // Show category overview only on "All" tab with no search query
+  const showOverview = !activeCategory && !q;
+  renderOverview(showOverview);
+
+  let filtered = allParts;
+
+  if (activeCategory)
+    filtered = filtered.filter(p => p.category === activeCategory);
+
+  if (q)
+    filtered = filtered.filter(p =>
+      p.part_name.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) ||
+      (p.compatible_brands || []).some(b => b.toLowerCase().includes(q)) ||
+      (p.compatible_models || []).some(m => m.toLowerCase().includes(q))
+    );
+
+  if (inStock)
+    filtered = filtered.filter(p => p.stock_count > 0);
+
+  renderGrid(filtered);
+}
+
+// ── Category tabs ────────────────────────────────────────
+function buildTabs(parts) {
+  // Count per category
+  const counts = {};
+  parts.forEach(p => { counts[p.category] = (counts[p.category] || 0) + 1; });
+  const categories = Object.keys(counts).sort();
+
+  const tabsEl = document.getElementById("cat-tabs");
+  document.getElementById("count-all").textContent = ` ${parts.length}`;
+
+  categories.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "cat-tab";
+    btn.dataset.cat = cat;
+    btn.innerHTML = `${cat}<span class="count">${counts[cat]}</span>`;
+    btn.addEventListener("click", () => selectCategory(cat));
+    tabsEl.appendChild(btn);
+  });
+
+  // "All" tab click
+  tabsEl.querySelector('[data-cat=""]').addEventListener("click", () => selectCategory(""));
+}
+
+function selectCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll(".cat-tab").forEach(t =>
+    t.classList.toggle("active", t.dataset.cat === cat)
+  );
+  applyFilters();
+}
+
+// ── Category overview cards ──────────────────────────────
+function buildOverview(parts) {
+  const groups = {};
+  parts.forEach(p => {
+    if (!groups[p.category]) groups[p.category] = { count: 0, min: Infinity, max: 0 };
+    groups[p.category].count++;
+    groups[p.category].min = Math.min(groups[p.category].min, p.price_eur);
+    groups[p.category].max = Math.max(groups[p.category].max, p.price_eur);
+  });
+
+  const el = document.getElementById("cat-overview");
+  el.innerHTML = Object.keys(groups).sort().map(cat => {
+    const g = groups[cat];
+    return `
+      <div class="cat-card" onclick="selectCategory('${cat}')">
+        <div class="cat-card-name">${cat}</div>
+        <div class="cat-card-count">${g.count} part${g.count !== 1 ? "s" : ""}</div>
+        <div class="cat-card-range">${fmtPrice(g.min)} – ${fmtPrice(g.max)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ── Init ─────────────────────────────────────────────────
+async function init() {
+  const res  = await fetch("/api/parts");
+  allParts   = await res.json();
+
+  buildTabs(allParts);
+  buildOverview(allParts);
+
+  // Wire up live filters
+  document.getElementById("search-input").addEventListener("input", applyFilters);
+  document.getElementById("in-stock-only").addEventListener("change", applyFilters);
+
+  applyFilters(); // initial render (shows overview + all parts)
+}
+
+init().catch(console.error);
+</script>
+
+<script src="/static/js/otto-widget.js"></script>
+</body>
+</html>

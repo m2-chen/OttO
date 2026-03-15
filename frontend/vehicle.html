@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vehicle — EV Land</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">EV Land</a>
+    <ul class="nav-links">
+      <li><a href="/catalogue">Catalogue</a></li>
+      <li><a href="/services">Services</a></li>
+      <li><a href="/parts">Parts</a></li>
+      <li><a href="/otto" class="nav-otto">Talk to OttO</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div id="app">
+  <!-- Loading state -->
+  <div class="detail-hero" style="background:var(--grey-100);aspect-ratio:16/7;"></div>
+  <div class="container" style="padding-top:56px">
+    <div class="skeleton-line medium skeleton" style="height:18px;margin-bottom:16px;max-width:120px"></div>
+    <div class="skeleton-line long skeleton" style="height:44px;margin-bottom:32px;max-width:400px"></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-logo">EV Land</div>
+    <ul class="footer-links">
+      <li><a href="/catalogue">Catalogue</a></li>
+      <li><a href="/services">Services</a></li>
+      <li><a href="/parts">Parts</a></li>
+    </ul>
+    <span class="footer-copy">© 2026 EV Land. All rights reserved.</span>
+  </div>
+</footer>
+
+<script>
+function fmtPrice(n) {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+}
+
+function specCell(label, value, unit) {
+  if (!value && value !== 0) return "";
+  return `
+    <div class="spec-cell">
+      <div class="spec-name">${label}</div>
+      <div class="spec-value">${value}<span class="spec-unit"> ${unit}</span></div>
+    </div>
+  `;
+}
+
+function render(v) {
+  const heroImg = v.image
+    ? `<img src="${v.image}" alt="${v.brand} ${v.model}" />`
+    : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:4rem;color:var(--grey-400)">⚡</div>`;
+
+  const variantPills = (v.variants || []).map(s => `
+    <button class="variant-pill ${s.vehicle_id === v.vehicle_id ? "active" : ""}"
+            onclick="navigateTo(${s.vehicle_id})">
+      <span class="variant-pill-name">${s.variant || "Standard"}</span>
+      <span class="variant-pill-sub">${s.range_wltp_km} km · ${fmtPrice(s.base_price_eur)}</span>
+    </button>
+  `).join("");
+
+  const colorTags = (v.colors || []).map(c =>
+    `<span class="color-tag">${c}</span>`
+  ).join("");
+
+  document.title = `${v.brand} ${v.model} — EV Land`;
+
+  const priceDisplay = v.min_dealer_price
+    ? fmtPrice(v.min_dealer_price)
+    : fmtPrice(v.base_price_eur);
+
+  document.getElementById("app").innerHTML = `
+    <div class="vehicle-detail">
+      <div class="detail-hero">${heroImg}</div>
+      <div class="container">
+        <div class="detail-layout">
+          <!-- Left: specs -->
+          <div>
+            <div class="detail-brand">${v.brand}</div>
+            <h1 class="detail-model">${v.model}</h1>
+            <div class="detail-variant">${v.variant || ""}</div>
+
+            <div class="specs-grid">
+              ${specCell("WLTP Range",   v.range_wltp_km,          "km")}
+              ${specCell("Battery",      v.battery_kwh,            "kWh")}
+              ${specCell("DC Charging",  v.dc_charging_kw,         "kW")}
+              ${specCell("0–100 km/h",   v.acceleration_0_100_s,   "s")}
+              ${specCell("Seats",        v.seats,                  "")}
+              ${specCell("Cargo",        v.cargo_l,                "L")}
+            </div>
+
+            ${v.body_type ? `<p style="font-size:0.85rem;color:var(--grey-600);margin-bottom:32px">
+              ${v.body_type} · ${v.drivetrain || ""} · ${v.year || "2025"}
+            </p>` : ""}
+
+            ${variantPills ? `
+              <div class="variants-section">
+                <div class="variants-title">Available variants</div>
+                <div class="variant-pills">${variantPills}</div>
+              </div>
+            ` : ""}
+          </div>
+
+          <!-- Right: price card -->
+          <div class="detail-sidebar">
+            <div class="price-card">
+              <div class="price-from">Starting from</div>
+              <div class="price-value">
+                <span class="price-currency">€</span>${priceDisplay.replace("€","").trim()}
+              </div>
+              <div class="cta-stack">
+                <button class="btn btn-primary" onclick="window.location.href='/otto'">
+                  Book a test drive
+                </button>
+                <button class="btn btn-outline" onclick="window.location.href='/otto'">
+                  Ask OttO a question
+                </button>
+                <a href="/catalogue" class="btn btn-outline" style="text-align:center">
+                  ← Back to catalogue
+                </a>
+              </div>
+
+              ${colorTags ? `
+                <div class="colors-section">
+                  <div class="colors-label">Available colours</div>
+                  <div class="colors-list">${colorTags}</div>
+                </div>
+              ` : ""}
+
+              ${v.total_stock > 0 ? `
+                <p style="margin-top:20px;font-size:0.78rem;color:#1a7a40;font-weight:600">
+                  ● In stock — ready for delivery
+                </p>
+              ` : `
+                <p style="margin-top:20px;font-size:0.78rem;color:var(--grey-600)">
+                  ○ Available to order — ask OttO for lead time
+                </p>
+              `}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function navigateTo(id) {
+  window.location.href = `/vehicle?id=${id}`;
+}
+
+async function init() {
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
+  if (!id) { window.location.href = "/catalogue"; return; }
+
+  try {
+    const res = await fetch(`/api/vehicles/${id}`);
+    if (!res.ok) throw new Error("Not found");
+    const data = await res.json();
+    render(data);
+  } catch {
+    document.getElementById("app").innerHTML = `
+      <div class="container" style="padding:80px 0;text-align:center;color:var(--grey-400)">
+        <p style="font-size:1.1rem;margin-bottom:20px">Vehicle not found.</p>
+        <a href="/catalogue" class="btn btn-outline">Back to catalogue</a>
+      </div>
+    `;
+  }
+}
+
+init();
+</script>
+
+<script src="/static/js/otto-widget.js"></script>
+</body>
+</html>
