@@ -1,6 +1,6 @@
 """
 03_generate_synthetic.py — OttO Data Pipeline, Step 3
-Generates all synthetic dealership data for VoltDrive Europe.
+Generates all synthetic dealership data for EV Land.
 
 Datasets generated:
   data/synthetic/staff.csv           —  8 employees (Sales, Technicians, Parts, Manager)
@@ -88,7 +88,7 @@ def generate_staff() -> list[dict]:
             "last_name":  last,
             "role":       role,
             "department": dept,
-            "email":      f"{first.lower()}.{last.lower().replace(' ', '').replace('den', '')}@voltdrive.eu",
+            "email":      f"{first.lower()}.{last.lower().replace(' ', '').replace('den', '')}@evland.eu",
             "phone":      fake.phone_number(),
         })
     return rows
@@ -164,7 +164,7 @@ def generate_inventory(vehicles: list[dict]) -> list[dict]:
 
 # ===========================================================================
 # 3. CUSTOMERS
-# 150 fictional CRM profiles. ~60% own a VoltDrive vehicle (owned_vehicle_id).
+# 150 fictional CRM profiles. ~60% own a EV Land vehicle (owned_vehicle_id).
 # Languages reflect European market: 40% FR, 25% EN, 20% DE, 15% ES.
 # ===========================================================================
 PARIS_CITIES = [
@@ -187,7 +187,7 @@ def generate_customers(vehicles: list[dict], n: int = 150) -> list[dict]:
         first = locale_fake.first_name()
         last  = locale_fake.last_name()
 
-        # 60% of customers own a VoltDrive car
+        # 60% of customers own a EV Land car
         owned_vehicle_id = random.choice(vehicle_ids) if random.random() < 0.60 else ""
 
         rows.append({
@@ -313,7 +313,7 @@ def generate_appointments(customers: list[dict], vehicles: list[dict]) -> list[d
 # ===========================================================================
 # 5. SERVICE HISTORY
 # ~200 records over the past 18 months (Sept 2024 → March 2026).
-# Links customers who own a VoltDrive car to their vehicle.
+# Links customers who own a EV Land car to their vehicle.
 #
 # Noise:
 #   - 5% of records: cost_eur = null  (invoice not yet processed)

@@ -32,6 +32,9 @@ def get_customer_service_history(
 
     query = text(f"""
         SELECT
+            c.first_name        AS customer_first_name,
+            c.last_name         AS customer_last_name,
+            c.city              AS customer_city,
             sh.record_id,
             sh.service_type,
             sh.service_date,
@@ -41,6 +44,7 @@ def get_customer_service_history(
             sh.status,
             v.brand AS vehicle_brand,
             v.model AS vehicle_model,
+            v.variant AS vehicle_variant,
             v.year  AS vehicle_year
         FROM service_history sh
         JOIN customers c  ON sh.customer_id = c.customer_id

@@ -9,8 +9,14 @@ from src.tools.sales import search_vehicles, get_vehicle_details, compare_vehicl
 from src.tools.booking import list_available_slots, book_slot, cancel_slot
 from src.tools.maintenance import get_customer_service_history, get_next_service_recommendation
 from src.tools.parts import find_parts, check_part_stock
+from src.tools.knowledge_base import search_knowledge_base
+from src.tools.photo_search import search_catalog_photos
 # ── TRIAL: web search — remove the next line to disable ──────────────────────
 from src.tools.web_search import search_web
+
+def request_email_input() -> dict:
+    """Signals the frontend to show an email input dialog. Returns immediately."""
+    return {"status": "email_input_requested"}
 
 # ---------------------------------------------------------------------------
 # Python callables — keyed by function name
@@ -26,8 +32,11 @@ TOOL_IMPLEMENTATIONS: dict = {
     "get_next_service_recommendation": get_next_service_recommendation,
     "find_parts":                     find_parts,
     "check_part_stock":               check_part_stock,
+    "search_knowledge_base":          search_knowledge_base,
+    "search_catalog_photos":          search_catalog_photos,
     # ── TRIAL: web search — remove the next line to disable ──────────────────
     "search_web":                     search_web,
+    "request_email_input":            request_email_input,
 }
 
 # ---------------------------------------------------------------------------
@@ -110,6 +119,7 @@ TOOL_SCHEMAS: list[dict] = [
                 "slot_id":        {"type": "integer", "description": "The slot ID to book"},
                 "customer_name":  {"type": "string",  "description": "Full name of the customer"},
                 "customer_phone": {"type": "string",  "description": "Customer phone number"},
+                "customer_email": {"type": "string",  "description": "Customer email address for booking confirmation"},
             },
             "required": ["slot_id", "customer_name", "customer_phone"],
         },
@@ -180,6 +190,67 @@ TOOL_SCHEMAS: list[dict] = [
             "required": ["part_id"],
         },
     },
+    {
+        "type": "function",
+        "name": "search_knowledge_base",
+        "description": (
+            "Search the official car catalog knowledge base to answer any question about "
+            "a vehicle's technical specs, WLTP range, charging speed and time, exterior colours, "
+            "trim levels and versions, interior materials, dimensions, safety features, "
+            "or any product detail. "
+            "Always call this tool BEFORE answering any product question — never guess or hallucinate specs. "
+            "If the customer mentions a specific brand or model, pass them as parameters to get a precise answer. "
+            "If the question is general (e.g. 'which car has the best range?'), leave brand and model empty "
+            "to search across all catalogs."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The customer's question or topic to search for in the catalog (e.g. 'charging time', 'exterior colours', 'boot space')",
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Car brand if mentioned by the customer (e.g. 'Kia', 'Renault', 'Hyundai'). Leave empty for general questions.",
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Car model if mentioned by the customer (e.g. 'EV9', 'R5 E-Tech', 'IONIQ 6'). Leave empty for general questions.",
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "type": "function",
+        "name": "search_catalog_photos",
+        "description": (
+            "Search catalog photos by visual content. Call this ONLY when the customer wants to SEE the car — "
+            "asking for photos, images, design, exterior look, interior, colors, or 'show me'. "
+            "This searches photo captions embedded individually, so results match precisely: "
+            "'interior' returns cabin shots, 'exterior' returns outside shots, 'charging' returns charging photos. "
+            "Do NOT use for specs, range, pricing, or availability — use search_knowledge_base or DB tools for those."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "What the customer wants to see, e.g. 'interior', 'exterior design', 'charging port', 'rear seats', 'dashboard'",
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Car brand if known (e.g. 'Renault', 'Kia', 'Hyundai')",
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Car model if known (e.g. 'R5 E-Tech', 'EV9', 'IONIQ 5')",
+                },
+            },
+            "required": ["query"],
+        },
+    },
     # ── TRIAL: web search — remove this entire block to disable ──────────────
     {
         "type": "function",
@@ -203,4 +274,18 @@ TOOL_SCHEMAS: list[dict] = [
         },
     },
     # ─────────────────────────────────────────────────────────────────────────
+    {
+        "type": "function",
+        "name": "request_email_input",
+        "description": (
+            "Show a text input dialog on the customer's screen so they can type their email address precisely. "
+            "Call this after collecting the customer's name and phone number, just before booking. "
+            "Wait for the customer to submit their email before calling book_slot()."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
 ]

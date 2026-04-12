@@ -28,6 +28,59 @@
       .otto-page { grid-template-columns: 1fr; padding-top: 40px; gap: 40px; }
     }
 
+    /* ── Catalog image panel ── */
+    #catalog-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+      animation: fadeSlideIn 0.4s ease;
+    }
+    #catalog-panel.visible { display: flex; }
+    .catalog-panel-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+    .catalog-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    .catalog-images img {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      transition: transform 0.2s ease;
+    }
+    .catalog-images img:hover { transform: scale(1.03); cursor: zoom-in; }
+
+    /* Lightbox */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    #lightbox.visible { display: flex; }
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 10px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     /* ── Left: branding + button ── */
     .otto-sidebar {
       display: flex;
@@ -196,6 +249,68 @@
       0%,60%,100% { transform: translateY(0); opacity: 0.35; }
       30%          { transform: translateY(-5px); opacity: 1; }
     }
+
+    /* ── Email input modal ── */
+    #email-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #email-overlay.visible { display: flex; }
+
+    #email-modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 36px 32px 28px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+      animation: fadeUp 0.2s ease;
+    }
+
+    #email-modal h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+      color: #0a0a0a;
+    }
+
+    #email-modal p {
+      font-size: 0.85rem;
+      color: #666;
+      margin: 0 0 20px;
+    }
+
+    #email-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #d0d0d0;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.15s;
+    }
+    #email-input:focus { border-color: #0a0a0a; }
+
+    #email-submit {
+      margin-top: 14px;
+      width: 100%;
+      padding: 12px;
+      background: #0a0a0a;
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    #email-submit:hover { opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -208,6 +323,16 @@
     </a>
   </div>
 </nav>
+
+<!-- Email input modal -->
+<div id="email-overlay">
+  <div id="email-modal">
+    <h3>Your confirmation email</h3>
+    <p>Please type your email address below — OttO will send your booking confirmation here.</p>
+    <input id="email-input" type="email" placeholder="your@email.com" autocomplete="email" />
+    <button id="email-submit" onclick="submitEmail()">Confirm</button>
+  </div>
+</div>
 
 <main class="otto-page">
 
@@ -240,12 +365,23 @@
     </div>
   </aside>
 
-  <!-- Right: transcript -->
+  <!-- Right: transcript + catalog images -->
   <div class="transcript-col">
     <div class="transcript-header">Conversation</div>
     <div id="transcript">
       <div class="empty-state" id="empty-state">Press the button to start.</div>
     </div>
+
+    <!-- Catalog image panel — appears when OttO retrieves visual catalog pages -->
+    <div id="catalog-panel">
+      <div class="catalog-panel-label">From the catalog</div>
+      <div class="catalog-images" id="catalog-images"></div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" onclick="closeLightbox()">
+    <img id="lightbox-img" src="" alt="" />
   </div>
 
 </main>
@@ -327,7 +463,11 @@ async function startCall() {
       playChunk(e.data);
       callBtn.classList.replace("active", "speaking") || callBtn.classList.add("speaking");
     } else {
-      handleEvent(JSON.parse(e.data));
+      try {
+        handleEvent(JSON.parse(e.data));
+      } catch (err) {
+        console.warn("OttO: failed to parse server message", err);
+      }
     }
   };
 
@@ -391,11 +531,73 @@ function handleEvent(ev) {
       addTurn("otto", ev.transcript);
       if (isActive) { callBtn.classList.remove("speaking"); callBtn.classList.add("active"); setStatus("Listening…", "live"); }
       break;
+    case "show_email_input":
+      showEmailModal();
+      break;
+    case "show_catalog_images":
+      showCatalogImages(ev.images);
+      break;
     case "error":
       setStatus(ev.error?.message || "Error", "error");
       hideTyping();
       break;
   }
+}
+
+function showEmailModal() {
+  document.getElementById("email-overlay").classList.add("visible");
+  document.getElementById("email-input").value = "";
+  setTimeout(() => document.getElementById("email-input").focus(), 100);
+}
+
+function hideEmailModal() {
+  document.getElementById("email-overlay").classList.remove("visible");
+}
+
+function submitEmail() {
+  const email = document.getElementById("email-input").value.trim();
+  if (!email || !email.includes("@")) {
+    document.getElementById("email-input").focus();
+    return;
+  }
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: "customer_email", email }));
+  }
+  hideEmailModal();
+  addTurn("user", `Email: ${email}`);
+}
+
+// Allow Enter key to submit
+document.getElementById("email-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") submitEmail();
+});
+
+// ── Catalog image panel ──────────────────────────────────────────────────────
+function showCatalogImages(urls) {
+  const panel  = document.getElementById("catalog-panel");
+  const grid   = document.getElementById("catalog-images");
+  grid.innerHTML = "";
+
+  urls.forEach(url => {
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "Catalog photo";
+    img.onclick = () => openLightbox(url);
+    grid.appendChild(img);
+  });
+
+  panel.classList.remove("visible");
+  void panel.offsetWidth; // force reflow to restart animation
+  panel.classList.add("visible");
+}
+
+function openLightbox(url) {
+  document.getElementById("lightbox-img").src = url;
+  document.getElementById("lightbox").classList.add("visible");
+}
+
+function closeLightbox() {
+  document.getElementById("lightbox").classList.remove("visible");
 }
 </script>
 </body>

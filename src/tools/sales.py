@@ -37,8 +37,13 @@ def search_vehicles(
         filters.append("LOWER(v.model) LIKE LOWER(:model)")
         params["model"] = f"%{model}%"
     if body_type:
+        # Normalise common aliases so they all match "Small Passenger Van"
+        body_type_normalised = body_type.strip().lower()
+        if body_type_normalised in ("mpv", "van", "minivan", "people carrier"):
+            params["body_type"] = "%van%"
+        else:
+            params["body_type"] = f"%{body_type}%"
         filters.append("LOWER(v.body_type) LIKE LOWER(:body_type)")
-        params["body_type"] = f"%{body_type}%"
     if min_seats:
         filters.append("v.seats >= :min_seats")
         params["min_seats"] = min_seats
@@ -61,8 +66,8 @@ def search_vehicles(
         LEFT JOIN inventory i ON i.vehicle_id = v.vehicle_id
         WHERE {where}
         GROUP BY v.vehicle_id
-        ORDER BY v.base_price_eur ASC
-        LIMIT 5
+        ORDER BY v.base_price_eur DESC
+        LIMIT 10
     """)
 
     with engine.connect() as conn:

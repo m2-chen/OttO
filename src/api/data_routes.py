@@ -6,10 +6,14 @@ Serves vehicle and parts data as JSON for frontend pages.
 
 from decimal import Decimal
 from datetime import date, datetime
+from pathlib import Path
 from typing import Annotated
 from fastapi import APIRouter, Query, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy import text
 from src.db.connection import engine
+
+_PHOTO_BASE = Path("data/rag/photos").resolve()
 
 data_router = APIRouter(prefix="/api")
 
@@ -205,3 +209,17 @@ def list_part_categories():
             text("SELECT DISTINCT category FROM parts ORDER BY category")
         ).fetchall()
     return [r[0] for r in rows]
+
+
+@data_router.get("/catalog-photo")
+def catalog_photo(path: str):
+    """Serve a clean catalog photo extracted from PDF. Path must be inside data/rag/photos/."""
+    try:
+        full = Path(path).resolve()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid path")
+    if not str(full).startswith(str(_PHOTO_BASE)):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if not full.exists():
+        raise HTTPException(status_code=404, detail="Photo not found")
+    return FileResponse(full, media_type="image/jpeg")

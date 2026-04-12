@@ -14,9 +14,9 @@ The system targets a real, underserved pain point: car dealerships lose customer
 phones go unanswered, callers are bounced between departments, and after-hours calls are missed
 entirely. OttO solves this with always-on, voice-native AI.
 
-### The Dealership — "VoltDrive Europe"
+### The Dealership — "EV Land"
 A fictional multi-brand EV-only dealership inspired by real European multi-brand dealers (e.g.
-SUMA Auto). VoltDrive sells exclusively battery-electric vehicles from 6 carefully selected
+SUMA Auto). EV Land sells exclusively battery-electric vehicles from 6 carefully selected
 brands covering every price segment of the European EV market.
 
 **Why EV-only?**
@@ -25,7 +25,7 @@ brands covering every price segment of the European EV market.
 - Clean, defensible scope for a capstone project
 
 **Demo scenario (for oral presentation):**
-A customer calls VoltDrive. OttO's receptionist answers in natural speech within 800ms, identifies
+A customer calls EV Land. OttO's receptionist answers in natural speech within 800ms, identifies
 the caller wants to book a test drive for a Volkswagen ID.4. The receptionist hands off to the
 Booking Agent, which checks real-time availability in the database, confirms a slot, and sends a
 confirmation — all within one phone call, zero human involvement.
@@ -420,7 +420,7 @@ otto/
 │   ├── pages/
 │   │   ├── index.tsx              ← Homepage: brand filter + vehicle grid
 │   │   ├── vehicles/[id].tsx      ← Vehicle detail page with specs
-│   │   └── call.tsx               ← Demo page: "Call VoltDrive" WebRTC button
+│   │   └── call.tsx               ← Demo page: "Call EV Land" WebRTC button
 │   ├── components/
 │   │   ├── VehicleCard.tsx
 │   │   ├── BrandFilter.tsx
@@ -528,7 +528,7 @@ docker-compose up   # Starts: PostgreSQL, FastAPI, Next.js, LiveKit
 ### Phase 4 — Frontend + Demo Polish (Week 6)
 - [ ] Next.js site: homepage + vehicle detail + call demo (3 pages, hard cap)
 - [ ] Brand filter + vehicle grid connected to FastAPI `/vehicles`
-- [ ] "Call VoltDrive" button triggers LiveKit WebRTC session
+- [ ] "Call EV Land" button triggers LiveKit WebRTC session
 - [ ] Demo scenario scripted, rehearsed, timed (10–15 min presentation)
 - [ ] docker-compose tested on a clean machine
 - [ ] **Gate:** demo works end-to-end on fresh `docker-compose up`

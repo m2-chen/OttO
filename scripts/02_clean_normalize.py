@@ -1,11 +1,11 @@
 """
 02_clean_normalize.py — OttO Data Pipeline, Step 2
 Cleans and normalises the external EV dataset (electric_vehicles_spec_2025.csv)
-into our canonical schema for the VoltDrive 24-model catalog.
+into our canonical schema for the EV Land 24-model catalog.
 
 What this script does (documented for the technical report):
   1. Load the raw external dataset (478 models, all brands)
-  2. Filter to VoltDrive's 24 target models using an explicit model map
+  2. Filter to EV Land's 24 target models using an explicit model map
   3. For each model, sort variants by battery size → keep base + top trim (2 rows max)
   4. Rename and map columns to our schema
   5. Normalise drivetrain values (FWD / RWD / AWD)
@@ -75,7 +75,7 @@ MODEL_MAP = {
     ("Mercedes-Benz", "EQA"):           ("Mercedes",     "EQA"),
     ("Mercedes-Benz", "EQB"):           ("Mercedes",     "EQB"),
     ("Mercedes-Benz", "EQS"):           ("Mercedes",     "EQS"),
-    # Note: EQE excluded — not in original VoltDrive catalog
+    # Note: EQE excluded — not in original EV Land catalog
 
     # Alpine — performance EV brand (Renault Group)
     ("Alpine", "A290"):                 ("Alpine",       "A290"),
@@ -89,7 +89,7 @@ MODEL_MAP = {
 # "A6 Avant" is the wagon — we carry the Sportback sedan.
 EXCLUDE_MODEL_SUBSTRINGS = [
     "EQE SUV", "EQS SUV",          # SUV variants of EQE/EQS — different model line
-    "EQE",                          # EQE not in VoltDrive catalog (CLA replaces it)
+    "EQE",                          # EQE not in EV Land catalog (CLA replaces it)
     "ID.7 Tourer",                  # Estate variant — we carry the liftback
     "Q4 Sportback",                 # Sportback variant of Q4 — not in catalog
     "Q6 e-tron Sportback",          # Sportback variant of Q6 — not in catalog

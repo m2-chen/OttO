@@ -12,6 +12,18 @@ venv/
 data/interim/
 data/processed/
 data/synthetic/
+data/rag/
+data/session_traces/
+
+# Evaluation results — session-specific, not for repo
+evaluation/results/
+
+# Claude internal
+.claude/
+
+# Office temp lock files
+~$*.docx
+~$*.xlsx
 
 # Node
 node_modules/

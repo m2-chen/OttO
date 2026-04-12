@@ -1,6 +1,6 @@
 """
 01_scrape_ev_specs.py — OttO Data Pipeline, Step 1
-Scrapes EV technical specs from evspecs.org for all 22 VoltDrive models.
+Scrapes EV technical specs from evspecs.org for all 22 EV Land models.
 
 Strategy:
   - For each model, fetch the index page → grab all variant URLs → pick first (base) + last (top)
@@ -37,7 +37,7 @@ INTERIM_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_CSV = INTERIM_DIR / "ev_specs_raw.csv"
 
 # ---------------------------------------------------------------------------
-# Model catalog — the 22 VoltDrive EV models
+# Model catalog — the 22 EV Land models
 #
 # Each entry has:
 #   brand       : display brand name
