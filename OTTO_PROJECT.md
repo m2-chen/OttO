@@ -5,17 +5,17 @@
 
 ## 1. Project Overview
 
-**OttO** is a real-time AI voice agent that handles inbound calls for a premium electric-vehicle dealership, fully autonomously, 24 hours a day. When a customer calls, OttO picks up instantly, understands what they need, and helps them — whether they want to explore vehicles, book a test drive, check their service history, or find a part. No hold music. No call queue. No after-hours voicemail.
+**OttO is a real-time AI voice agent that handles inbound calls for a premium electric-vehicle dealership, 24/7. When a customer calls, OttO picks up instantly, understands what they need, and helps them — whether they want to explore vehicles, book a test drive, check their service history, or find a part. No hold music. No call queue. No after-hours voicemail.
 
 ### The Dealership — "EV Land"
-A fictional multi-brand EV-only dealership inspired by real European dealers. EV Land sells exclusively battery-electric vehicles from 7 brands covering every price segment of the European EV market. No ICE. No PHEV. The focused scope creates a clean, defensible knowledge boundary for the AI.
+A fictional multi-brand EV-only dealership inspired by real European dealers. EV Land sells exclusively battery-electric vehicles from 7 brands covering every price segment of the European EV market.The focused scope creates a clean, defensible knowledge boundary for the AI.
 
-**Market context:** BEV market share crossed 20% in Europe in 2025. SUVs dominate new-car sales at 59%. Multi-brand EV dealerships are a growing format. The catalog directly mirrors this reality.
+**Market context:** BEV market share crossed 20% in Europe in 2025. SUVs dominate new-car sales at 59%. Multi-brand EV dealerships are a growing format. 
 
 ### Key Architectural Decision: Single Agent over Multi-Agent
 The original specification called for a multi-agent system — a Receptionist routing to four specialist agents via LangGraph. During implementation this was deliberately collapsed into a single agent.
 
-**Why:** The OpenAI Realtime API maintains a persistent, stateful voice session. Routing mid-call to a separate agent requires either (a) tearing down and restarting the session — which resets all context and introduces an audible gap — or (b) fragile cross-session state serialization. Domain separation is achieved more cleanly through tool design: each domain has its own isolated tool functions. One agent with 12 well-scoped tools beats four agents with 3 tools each in a voice context. Handoff latency is the enemy of a good phone call.
+**Why: The OpenAI Realtime API maintains a persistent, stateful voice session. Routing mid-call to a separate agent requires either (a) tearing down and restarting the session — which resets all context and introduces an audible gap — or (b) fragile cross-session state serialization. Domain separation is achieved more cleanly through tool design: each domain has its own isolated tool functions. One agent with 12 well-scoped tools beats four agents with 3 tools each in a voice context. 
 
 ---
 
@@ -416,37 +416,37 @@ Voice Activity Detection runs server-side via OpenAI's `server_vad` mode:
 
 ## 14. Phase Status
 
-### Phase 1 — Data Foundation ✅
+### Phase 1 — Data Foundation 
 - PostgreSQL schema + Docker environment
 - Scraper for 22 EV models (evspecs.org)
 - Data cleaning and normalization
 - Synthetic dealership data generation (inventory, customers, appointments, service history, parts)
 - Database load and validation
 
-### Phase 2 — Voice Agent ✅
+### Phase 2 — Voice Agent 
 - Single-agent architecture (collapsed from 5-agent LangGraph design)
 - 12 tool functions across 5 domains
 - OpenAI Realtime API WebSocket bridge
 - System prompt with guardrails, domain playbooks, RAG rules
 - Custom HTML frontend with WebAudio API
 
-### Phase 3 — RAG Pipeline ✅
+### Phase 3 — RAG Pipeline 
 - 22 PDF catalogs parsed and embedded (pgvector text search)
 - 890 catalog photos extracted, captioned with GPT-4o Vision, embedded (pgvector photo search)
 - RAG quality filters: similarity threshold 0.35, garbled OCR page detection
 
-### Phase 4 — Evaluation System ✅
+### Phase 4 — Evaluation System 
 - Session trace recorder (incremental, crash-safe)
 - LLM-as-a-Judge with 7 scoring dimensions and plain-English session summary
 - 34 synthetic scenarios
 - Streamlit evaluation dashboard
 - Desktop launchers: `OttO.command`, `Evaluate Session.command`
 
-### Phase 5 — Resilience & Post-Call ✅
+### Phase 5 — Resilience & Post-Call 
 - Email agent: customer confirmation + advisor profiling briefing
 - WebSocket resilience: immediate cleanup on disconnect
 - Session trace bug fixed (wrong key causing judge to always see 0 RAG pages)
 - RAG fallback rule hardened in system prompt
 
-### Phase 6 — Report ⏳
+### Phase 6 — Report 
 - Updated technical report (in progress post-demo)
