@@ -399,7 +399,7 @@ def analyze_single(trace_path: Path, save: bool = False):
     rule_findings = analyze_trace_rules(trace)
     print_rule_findings(rule_findings)
 
-    print(Fore.WHITE + "\n[2/2] Running LLM deep security analysis (Claude)...")
+    print(Fore.WHITE + "\n[2/2] Running LLM deep security analysis (GPT-4o-mini)...")
     llm_result = analyze_trace_llm(trace)
     print_llm_findings(llm_result)
 
