@@ -448,5 +448,5 @@ Voice Activity Detection runs server-side via OpenAI's `server_vad` mode:
 - Session trace bug fixed (wrong key causing judge to always see 0 RAG pages)
 - RAG fallback rule hardened in system prompt
 
-### Phase 6 — Report 
+### Phase 6 — Report (In progress)
 - Updated technical report (in progress post-demo)
